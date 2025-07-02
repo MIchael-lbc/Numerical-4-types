@@ -1,0 +1,260 @@
+#include <stdio.h>
+#include <math.h> // For fabs (to compute absolute values)
+
+#define MAX_TERMS 10   //zy ma bet3mel difine pi 3.14
+
+/* Arrays to store coefficients and powers of the user-defined function */
+float coefficients[MAX_TERMS];
+int powers[MAX_TERMS];
+int num_terms;
+
+/* Function to calculate f(x) based on user input */
+float f(float x) {
+    float result = 0;
+    for (int i = 0; i < num_terms; i++) {
+        result += coefficients[i] * pow(x, powers[i]);
+    }
+    return result;
+}
+
+/* Function to calculate f'(x) using finite difference approximation */
+float df(float x) {
+    float h = 1e-6;  // Small value for numerical differentiation
+    return (f(x + h) - f(x - h)) / (2 * h);
+}
+
+/* Function to prompt and select stopping criterion */
+int choose_stopping_criterion() {
+    int choice;
+    printf("\nChoose stopping criterion:\n");
+    printf("1. Stop after a maximum number of iterations\n");
+    printf("2. Stop when absolute error is less than the specified error\n");
+    printf("Enter choice (1 or 2): ");
+    scanf("%d", &choice);
+    return choice;
+}
+
+/* Function to take input for either number of iterations or specified error */
+void get_error_or_iterations(int stopping_criterion, float* e, int* N) {
+    if (stopping_criterion == 1) {
+        printf("\nEnter maximum iterations: ");
+        scanf("%d", N);
+        *e = -1;  // Not used in this criterion
+    }
+    else if (stopping_criterion == 2) {
+        printf("\nEnter tolerable absolute error: ");
+        scanf("%f", e);
+        *N = -1;  // Not used in this criterion
+    }
+}
+
+
+/* Secant Method */
+void secant_method(float a, float b, float e, int N, int stopping_criterion) {
+    float f0, f1, f2, x2, abs_error, x2_old;
+    int step = 1;
+
+    printf("\nSecant Method:\n");
+    printf("Step\t\tx0\t\tx1\t\tx2\t\tf(x2)\t\tAbs. Error\n");
+
+    x2_old = b; // Initialize x2_old
+
+    do {
+        f0 = f(a);
+        f1 = f(b);
+
+        if (f1 - f0 == 0.0) {
+            printf("Mathematical Error: Division by zero.\n");
+            return;
+        }
+
+        x2 = b - (b - a) * f1 / (f1 - f0);
+        f2 = f(x2);
+
+        // Calculate absolute error in every iteration
+        abs_error = fabs(x2 - x2_old);
+
+        printf("%d\t\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\n", step, a, b, x2, f2, abs_error);
+
+        a = b;
+        b = x2;
+        x2_old = x2; // Update x2_old
+        step++;
+
+        if ((stopping_criterion == 1 && step > N) || (stopping_criterion == 2 && abs_error < e)) break;
+
+    } while (1);
+
+    printf("\nThe root of the equation is: %.6f\n", x2);
+}
+
+/* False Position Method */
+void false_position_method(float a, float b, float e, int N, int stopping_criterion) {
+    float f0, f1, f2, c_old, c_new, abs_error;
+    int step = 1;
+
+    printf("\nFalse position method\n");
+    printf("Step\t\ta\t\tb\t\tc\t\tf(a)\t\tf(c)\t\tf(b)\t\tAbs. Error\n");
+
+    c_old = 0; // Initialize c_old to track the midpoint
+
+    do {
+        f0 = f(a);
+        f1 = f(b);
+
+        if (f0 * f1 >= 0) {
+            printf("Function has the same sign at a and b.\n");
+            return;
+        }
+
+        c_new = b - (f1 * (b - a)) / (f1 - f0);     // Midpoint of the interval
+        f2 = f(c_new);
+
+        abs_error = fabs(c_new - c_old);
+
+        // Print the current step values
+        printf("%d\t\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\n", step, a, b, c_new, f0, f2, f1, abs_error);
+
+        // Update interval based on function signs
+        if (f0 * f2 < 0) {
+            b = c_new; // Update b to c_new
+        }
+        else {
+            a = c_new; // Update a to c_new
+        }
+
+        c_old = c_new; // Update c_old for the next iteration
+        step++;
+
+        // Check stopping criteria
+        if ((stopping_criterion == 1 && step > N) || (stopping_criterion == 2 && abs_error < e)) break;
+
+    } while (1);
+
+    printf("\nThe root of the equation is: %.6f\n", c_new);
+}
+
+
+/* Newton's Method */
+void newton_method(float a, float e, int N, int stopping_criterion) {
+    float f0, df0, x1, abs_error;
+    int step = 1;  /*counter*/
+
+    printf("\nNewton's Method:\n");
+    printf("Step\t\tx0\t\tx1\t\tf(x1)\t\tAbs. Error\n");
+
+
+
+    do {
+        f0 = f(a);    // Evaluate f(x0)
+        df0 = df(a);  // Evaluate f'(x0)
+
+        if (df0 == 0.0) {
+            printf("Math error: Derivative zero.\n");
+            return;
+        }
+
+        x1 = a -(f0 / df0); // Newton's method iteration
+
+        // Calculate absolute error, starting from the first iteration
+        abs_error = fabs(x1 - a);
+
+        printf("%d\t\t%.6f\t%.6f\t%.6f\t%.6f\n", step, a, x1, f0, abs_error);
+
+        a = x1;       // Update a for the next iteration
+    
+        step++;
+
+        // Check stopping criteria
+        if ((stopping_criterion == 1 && step > N) || (stopping_criterion == 2 && abs_error < e)) {
+            break;
+        }
+
+    } while (1);   /*tefdal true le8ayt ma yeb2a fe 7aga false*/
+
+    printf("\nThe root of the equation is: %.6f\n", x1);
+}
+
+
+/* Bisection Method */
+void bisection_method(float a, float b, float e, int N, int stopping_criterion) {
+    float f0, f1, f2, c_old, c_new, abs_error;
+    int step = 1;
+
+    printf("\nBisection Method:\n");
+    printf("Step\t\ta\t\tb\t\tc\t\tf(a)\t\tf(c)\t\tf(b)\t\tAbs. Error\n");
+
+    c_old = 0; // Initialize c_old to track the midpoint
+   
+    do {
+        f0 = f(a);
+        f1 = f(b);
+
+        if (f0 * f1 > 0) {
+            printf("Function has the same sign at a and b.\n");
+            return;
+        }
+
+        c_new = (a + b) / 2.0; // Midpoint of the interval
+        f2 = f(c_new);
+
+        abs_error = fabs(c_new - c_old);
+
+        // Print the current step values
+        printf("%d\t\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\n", step, a, b, c_new, f0, f2, f1, abs_error);
+
+        // Update interval based on function signs
+        if (f0 * f2 < 0) {
+            b = c_new; // Update b to c_new
+        }
+        else {
+            a = c_new; // Update a to c_new
+        }
+
+        c_old = c_new; // Update c_old for the next iteration
+        step++;
+
+        // Check stopping criteria
+        if ((stopping_criterion == 1 && step > N) || (stopping_criterion == 2 && abs_error < e)) break;
+
+    } while (1);
+
+    printf("\nThe root of the equation is: %.6f\n", c_new);
+}
+
+
+/* Main function */
+int main() {
+    float a, b, e;
+    int N, choice, stopping_criterion;
+
+    // Get the user-defined function
+    printf("Enter the number of terms in the function /(e.g., for 2x^3 + 3x - 5, enter 3):/ ");
+    scanf("%d", &num_terms);
+
+    for (int i = 0; i < num_terms; i++) {
+        printf("Enter coefficient and power for term %d /(e.g., for 2x^3, enter 2 3):/ ", i + 1);
+        scanf("%f %d", &coefficients[i], &powers[i]);
+    }
+
+    printf("\nChoose method:\n1. Secant\n2. False Position\n3. Newton\n4. Bisection\n");
+    scanf("%d", &choice);
+
+    printf("\nEnter first value (a): ");
+    scanf("%f", &a);
+    if (choice != 3) /* for newton method as it takes a only*/
+    {  
+        printf("Enter second value (b): ");
+        scanf("%f", &b);
+    }
+
+    stopping_criterion = choose_stopping_criterion();
+    get_error_or_iterations(stopping_criterion, &e, &N);
+
+    if (choice == 1) secant_method(a, b, e, N, stopping_criterion);
+    if (choice == 2) false_position_method(a, b, e, N, stopping_criterion);
+    if (choice == 3) newton_method(a, e, N, stopping_criterion);
+    if (choice == 4) bisection_method(a, b, e, N, stopping_criterion);
+
+    return 0;
+}
